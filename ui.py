@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QListWidget, QListWidgetItem, QLabel, QDialog, QFormLayout, QLineEdit, QDateEdit, QComboBox, QCalendarWidget, QTextBrowser
 from PySide6.QtCore import Qt, QDate
-from PySide6.QtGui import QTextCharFormat, QColor, QBrush
+from PySide6.QtGui import QTextCharFormat, QColor
 from task_manager import TaskManager
 
 class TaskDialog(QDialog):
@@ -73,14 +73,17 @@ class TaskManagerUI(QWidget):
 
     for task in tasks:
       deadline = QDate.fromString(task['deadline'], "yyyy-MM-dd")
-      difficulty = task['difficulty']
-      days_before_deadline = {1: 3, 2: 7, 3: 14}[difficulty]
+      days_until_deadline = today.daysTo(deadline)
 
-      item_text = f"{task['title']} - 期限: {task['deadline']} - 難易度: {task['difficulty']}"
+      # 難易度ごとの警告日数
+      warning_days = {1: 3, 2: 7, 3: 14}
+      difficulty = task['difficulty']
+
+      item_text = f"{task['title']} - 期限: {task['deadline']} - 難易度: {difficulty}"
       item = QListWidgetItem(item_text)
 
-      if today >= deadline.addDays(-days_before_deadline):
-        item.setForeground(QBrush(QColor("red")))
+      if days_until_deadline <= warning_days.get(difficulty, 0):
+        item.setForeground(QColor("red"))
 
       self.task_list.addItem(item)
 
@@ -115,8 +118,6 @@ class CalendarView(QWidget):
     self.layout = QVBoxLayout()
     self.calendar = QCalendarWidget()
     self.task_display = QTextBrowser()
-    self.task_display.setStyleSheet("font-size: 16pt; font-family: Arial;")
-
     self.layout.addWidget(self.calendar)
     self.layout.addWidget(self.task_display)
 
@@ -144,4 +145,5 @@ class CalendarView(QWidget):
     tasks = self.task_manager.get_tasks()
     task_names = [task["title"]
                   for task in tasks if task["deadline"] == selected_date]
-    self.task_display.setText("\n".join(task_names) if task_names else "タスクなし")
+    self.task_display.setText(
+        "\n".join(task_names) if task_names else "タスクなし")
