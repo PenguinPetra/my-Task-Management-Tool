@@ -1,6 +1,6 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QListWidget, QLabel, QDialog, QFormLayout, QLineEdit, QDateEdit, QComboBox, QCalendarWidget, QTextBrowser
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QListWidget, QListWidgetItem, QLabel, QDialog, QFormLayout, QLineEdit, QDateEdit, QComboBox, QCalendarWidget, QTextBrowser
 from PySide6.QtCore import Qt, QDate
-from PySide6.QtGui import QTextCharFormat, QColor
+from PySide6.QtGui import QTextCharFormat, QColor, QBrush
 from task_manager import TaskManager
 
 class TaskDialog(QDialog):
@@ -69,9 +69,20 @@ class TaskManagerUI(QWidget):
     """タスク一覧を読み込む"""
     self.task_list.clear()
     tasks = self.task_manager.get_tasks()
+    today = QDate.currentDate()
+
     for task in tasks:
-      self.task_list.addItem(
-          f"{task['title']} - 期限: {task['deadline']} - 難易度: {task['difficulty']}")
+      deadline = QDate.fromString(task['deadline'], "yyyy-MM-dd")
+      difficulty = task['difficulty']
+      days_before_deadline = {1: 3, 2: 7, 3: 14}[difficulty]
+
+      item_text = f"{task['title']} - 期限: {task['deadline']} - 難易度: {task['difficulty']}"
+      item = QListWidgetItem(item_text)
+
+      if today >= deadline.addDays(-days_before_deadline):
+        item.setForeground(QBrush(QColor("red")))
+
+      self.task_list.addItem(item)
 
   def create_task(self):
     """タスク作成ダイアログを開き、入力を取得"""
@@ -104,6 +115,8 @@ class CalendarView(QWidget):
     self.layout = QVBoxLayout()
     self.calendar = QCalendarWidget()
     self.task_display = QTextBrowser()
+    self.task_display.setStyleSheet("font-size: 16pt; font-family: Arial;")
+
     self.layout.addWidget(self.calendar)
     self.layout.addWidget(self.task_display)
 
@@ -131,5 +144,4 @@ class CalendarView(QWidget):
     tasks = self.task_manager.get_tasks()
     task_names = [task["title"]
                   for task in tasks if task["deadline"] == selected_date]
-    self.task_display.setText(
-        "\n".join(task_names) if task_names else "タスクなし")
+    self.task_display.setText("\n".join(task_names) if task_names else "タスクなし")
